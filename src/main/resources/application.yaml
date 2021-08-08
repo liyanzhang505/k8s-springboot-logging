@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: qiusuo-gatewayservice
+
+server:
+  port: 8040

@@ -1,0 +1,30 @@
+Configuration:
+  status: debug
+  Properties:
+    Property:
+      - name: log.path
+        value: /var/log/qiusuo
+      - name: project.name
+        value: gatewayservice
+
+  Appenders:
+    RollingFile:
+      - name: ROLLING_FILE
+        ignoreExceptions: false
+        fileName: "${log.path}/qiusuo#${project.name}#${env:MY_NODE_NAME}#${env:MY_POD_NAMESPACE}#${env:MY_POD_NAME}.log"
+        filePattern: "${log.path}/qiusuo#${project.name}#${env:MY_NODE_NAME}#${env:MY_POD_NAMESPACE}#${env:MY_POD_NAME}#%d{yyyy-MM-dd}.log"
+        append: true
+        PatternLayout:
+          pattern: "%d{yyyy-MM-dd HH:mm:ss}:${project.name} %p %t [%F:%L] - %m%n"
+        Policies:
+          TimeBasedTriggeringPolicy:
+            modulate: true
+            interval: 1
+        DefaultRolloverStrategy:
+          max: 100
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: ROLLING_FILE

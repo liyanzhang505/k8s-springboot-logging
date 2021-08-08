@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: logstash-pod
+  labels:
+    app: logstash-pod
+spec:
+  containers:
+    - image: logstash:6.5.4
+      name: logstash-pod
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ELASTICSEARCH_HOSTS
+          value: http://elasticsearch:9200
+      ports:
+        - containerPort: 5044
+      volumeMounts:
+        - name: logstash-pipeline
+          mountPath: /usr/share/logstash/pipeline/
+      command:
+        - logstash
+  volumes:
+    - name: logstash-pipeline
+      configMap:
+        name: logstash-configmap
+        items:
+          - key: logstash.conf
+            path: logstash.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+spec:
+  ports:
+    - name: 5044-5044
+      port: 5044
+      protocol: TCP
+      targetPort: 5044
+  type: ClusterIP
+  selector:
+    app: logstash-pod
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-configmap
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+    filter {
+      if [fields][log-source] == "logfile" {
+        grok {
+            match => { "message" => "%{TIMESTAMP_ISO8601:time}:%{WORD:service} %{LOGLEVEL:loglevel} %{DATA:thread_name} \[%{DATA:src_file}:%{NUMBER:line}\] - %{GREEDYDATA:msg}" }
+        }
+
+        mutate {
+          add_field => { "tmp_path" => "%{[log][file][path]}" }
+        }
+
+        mutate {
+          split => ["tmp_path", "#"]
+          add_field => { "kubernetes.node.name" => "%{tmp_path[2]}" }
+          add_field => { "kubernetes.namespace" => "%{tmp_path[3]}" }
+          add_field => { "tmp_podname" => "%{tmp_path[4]}" }
+        }
+
+        mutate {
+          split => ["tmp_podname", "."]
+          add_field => { "kubernetes.pod.name" => "%{tmp_podname[0]}" }
+        }
+
+        mutate {
+          remove_field => [ "tmp_path", "tmp_podname" ]
+        }
+      }
+    }
+
+    output {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "logstash-%{+YYYY.MM.dd}"
+        }
+        stdout { codec => rubydebug }
+    }

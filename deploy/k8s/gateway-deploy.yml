@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qiusuo-gateway-deployment
+  labels:
+    app: qiusuo-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: qiusuo-gateway
+  template:
+    metadata:
+      labels:
+        app: qiusuo-gateway
+    spec:
+      containers:
+        - name: qiusuo-gateway
+          image: qiusuo/gateway:v1
+          imagePullPolicy: Never
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: log-path
+              mountPath: /var/log/qiusuo
+          ports:
+            - containerPort: 8040
+      volumes:
+        - name: log-path
+          hostPath:
+            path: /var/log/qiusuo
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qiusuo-gateway-svc
+spec:
+  ports:
+    - name: 8040-8040
+      port: 8040
+      protocol: TCP
+      targetPort: 8040
+  selector:
+    app: qiusuo-gateway
+  sessionAffinity: None
+  type: ClusterIP
+
