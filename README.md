@@ -1,5 +1,6 @@
 # Logging Demo of Springboot Application in Kubernetes
-
+## Tutorial
+https://medium.com/@lyzkevin2020/how-to-build-a-log-collection-system-for-springboot-projects-in-kubernetes-3f4c3e09dd6b
 ## Create Springboot Application Image
 - Attach terminal to minikube docker environment
 ```bash
